@@ -29,6 +29,9 @@ def max_onehot(x):
     x[:,1:,:,:][x[:,1:,:,:] != x_max] = 0
     return x
 
+def worker_init_fn(worker_id):
+    np.random.seed(1 + worker_id)
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -68,8 +71,7 @@ if __name__ == '__main__':
                         imutils.HWC_to_CHW,
                         torch.from_numpy
                     ]))
-    def worker_init_fn(worker_id):
-        np.random.seed(1 + worker_id)
+
     train_data_loader = DataLoader(train_dataset, batch_size=args.batch_size,
                                    shuffle=True, num_workers=args.num_workers, pin_memory=True, drop_last=True,
                                    worker_init_fn=worker_init_fn)
