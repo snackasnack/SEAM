@@ -7,6 +7,39 @@ import argparse
 
 categories = ['background','aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow',
               'diningtable','dog','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor']
+
+def compare(start,step,TP,P,T,input_type,threshold, name_list, predict_folder, gt_folder, num_cls):
+    for idx in range(start,len(name_list),step):
+        name = name_list[idx]
+        if input_type == 'png':
+            predict_file = os.path.join(predict_folder,'%s.png'%name)
+            predict = np.array(Image.open(predict_file)) #cv2.imread(predict_file)
+        elif input_type == 'npy':
+            predict_file = os.path.join(predict_folder,'%s.npy'%name)
+            predict_dict = np.load(predict_file, allow_pickle=True).item()
+            h, w = list(predict_dict.values())[0].shape
+            tensor = np.zeros((21,h,w),np.float32)
+            for key in predict_dict.keys():
+                tensor[key+1] = predict_dict[key]
+            tensor[0,:,:] = threshold 
+            predict = np.argmax(tensor, axis=0).astype(np.uint8)
+
+        gt_file = os.path.join(gt_folder,'%s.png'%name)
+        gt = np.array(Image.open(gt_file))
+        cal = gt<255
+        mask = (predict==gt) * cal
+    
+        for i in range(num_cls):
+            P[i].acquire()
+            P[i].value += np.sum((predict==i)*cal)
+            P[i].release()
+            T[i].acquire()
+            T[i].value += np.sum((gt==i)*cal)
+            T[i].release()
+            TP[i].acquire()
+            TP[i].value += np.sum((gt==i)*mask)
+            TP[i].release()
+
 def do_python_eval(predict_folder, gt_folder, name_list, num_cls=21, input_type='png', threshold=1.0, printlog=False):
     TP = []
     P = []
@@ -15,41 +48,9 @@ def do_python_eval(predict_folder, gt_folder, name_list, num_cls=21, input_type=
         TP.append(multiprocessing.Value('i', 0, lock=True))
         P.append(multiprocessing.Value('i', 0, lock=True))
         T.append(multiprocessing.Value('i', 0, lock=True))
-    
-    def compare(start,step,TP,P,T,input_type,threshold):
-        for idx in range(start,len(name_list),step):
-            name = name_list[idx]
-            if input_type == 'png':
-                predict_file = os.path.join(predict_folder,'%s.png'%name)
-                predict = np.array(Image.open(predict_file)) #cv2.imread(predict_file)
-            elif input_type == 'npy':
-                predict_file = os.path.join(predict_folder,'%s.npy'%name)
-                predict_dict = np.load(predict_file, allow_pickle=True).item()
-                h, w = list(predict_dict.values())[0].shape
-                tensor = np.zeros((21,h,w),np.float32)
-                for key in predict_dict.keys():
-                    tensor[key+1] = predict_dict[key]
-                tensor[0,:,:] = threshold 
-                predict = np.argmax(tensor, axis=0).astype(np.uint8)
-
-            gt_file = os.path.join(gt_folder,'%s.png'%name)
-            gt = np.array(Image.open(gt_file))
-            cal = gt<255
-            mask = (predict==gt) * cal
-      
-            for i in range(num_cls):
-                P[i].acquire()
-                P[i].value += np.sum((predict==i)*cal)
-                P[i].release()
-                T[i].acquire()
-                T[i].value += np.sum((gt==i)*cal)
-                T[i].release()
-                TP[i].acquire()
-                TP[i].value += np.sum((gt==i)*mask)
-                TP[i].release()
     p_list = []
     for i in range(8):
-        p = multiprocessing.Process(target=compare, args=(i,8,TP,P,T,input_type,threshold))
+        p = multiprocessing.Process(target=compare, args=(i,8,TP,P,T,input_type,threshold,name_list, predict_folder, gt_folder, num_cls))
         p.start()
         p_list.append(p)
     for p in p_list:
