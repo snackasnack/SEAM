@@ -19,9 +19,9 @@ class RandomResizeLong():
         else:
             target_shape = (target_long, int(round(h * target_long / w)))
 
-        img = img.resize(target_shape, resample=PIL.Image.CUBIC)
+        img = img.resize(target_shape, resample=PIL.Image.LANCZOS)
         if sal:
-           sal = sal.resize(target_shape, resample=PIL.Image.CUBIC)
+           sal = sal.resize(target_shape, resample=PIL.Image.LANCZOS)
            return img, sal
         return img
 
