@@ -108,7 +108,7 @@ class VOC12ClsDatasetMSF(VOC12ClsDataset):
         for s in self.scales:
             target_size = (round(rounded_size[0]*s),
                            round(rounded_size[1]*s))
-            s_img = img.resize(target_size, resample=PIL.Image.CUBIC)
+            s_img = img.resize(target_size, resample=PIL.Image.LANCZOS)
             ms_img_list.append(s_img)
 
         if self.inter_transform:
@@ -139,7 +139,7 @@ class VOC12ClsDatasetMS(VOC12ClsDataset):
         for s in self.scales:
             target_size = (round(rounded_size[0]*s),
                            round(rounded_size[1]*s))
-            s_img = img.resize(target_size, resample=PIL.Image.CUBIC)
+            s_img = img.resize(target_size, resample=PIL.Image.LANCZOS)
             ms_img_list.append(s_img)
 
         if self.inter_transform:
